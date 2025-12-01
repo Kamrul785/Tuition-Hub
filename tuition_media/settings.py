@@ -15,8 +15,14 @@ SECRET_KEY = 'django-insecure-o4(z+yezw8z_tycb*q17gtg_d-wodex1af&3+=qa%l)qix1)ee
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = [".vercel.app",'127.0.0.1']
+ALLOWED_HOSTS = [".vercel.app", '.now.sh', '127.0.0.1', 'localhost']
 AUTH_USER_MODEL = 'users.User'
+
+# CSRF Settings for production
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.vercel.app',
+    'https://*.now.sh',
+]
 
 
 # Application definition
@@ -63,6 +69,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Alternative port
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
+    # Add your production frontend URL here when you have it
+    # "https://your-frontend-domain.vercel.app",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
