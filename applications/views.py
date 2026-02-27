@@ -2,8 +2,8 @@ from django.shortcuts import render
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from .models import Application, Enrollment, Topic, Assignment, Review
-from .serializers import ApplicationSerializer, EnrollmentSerializer, TopicSerializer, AssignmentSerializer, ReviewSerializer
+from .models import Application, Enrollment, Topic, Assignment, Review, Payment, TutorWallet, Invoice
+from .serializers import ApplicationSerializer, EnrollmentSerializer, TopicSerializer, AssignmentSerializer, ReviewSerializer, PaymentSerializer, TutorWalletSerializer, InvoiceSerializer
 from tuition.models import Tuition
 from tuition.views import IsTutor
 from tuition.paginations import DefaultPagination
@@ -19,7 +19,7 @@ class IsUser(permissions.BasePermission):
 
 class ApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicationSerializer
-    queryset = Application.objects.all()
+    queryset = Application.objects.all() 
     pagination_class = DefaultPagination    
     def get_permissions(self):
         if self.action == "create":
@@ -157,3 +157,99 @@ class ReviewViewSet(viewsets.ModelViewSet):
             raise ValidationError("You have already reviewed this tuition.")
 
         serializer.save(student=self.request.user, tuition=tuition)
+
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    serializer_class = PaymentSerializer
+    queryset = Payment.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = DefaultPagination
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == "User":
+            return Payment.objects.filter(student=user)
+        elif user.role == "Tutor":
+            return Payment.objects.filter(tutor=user)
+        return Payment.objects.none()
+
+    @action(detail=False, methods=["get"])
+    def my_payments(self, request):
+        """Get current user's payment history"""
+        payments = self.get_queryset()
+        page = self.paginate_queryset(payments)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(payments, many=True)
+        return Response(serializer.data)
+
+
+class TutorWalletViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = TutorWalletSerializer
+    queryset = TutorWallet.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == "Tutor":
+            return TutorWallet.objects.filter(tutor=user)
+        return TutorWallet.objects.none()
+
+    @action(detail=False, methods=["get"])
+    def my_wallet(self, request):
+        """Get current tutor's wallet balance"""
+        try:
+            wallet = TutorWallet.objects.get(tutor=request.user)
+            serializer = self.get_serializer(wallet)
+            return Response(serializer.data)
+        except TutorWallet.DoesNotExist:
+            return Response(
+                {"detail": "Wallet not found. Only tutors have wallets."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    @action(detail=False, methods=["get"])
+    def earnings(self, request):
+        """Get tutor's earnings from completed payments"""
+        try:
+            wallet = TutorWallet.objects.get(tutor=request.user)
+            payments = Payment.objects.filter(tutor=request.user, status=Payment.PAYMENT_STATUS_COMPLETED)
+            return Response({
+                "total_earned": wallet.total_earned,
+                "available_balance": wallet.available_balance,
+                "pending_balance": wallet.pending_balance,
+                "payments_count": payments.count(),
+                "recent_payments": PaymentSerializer(payments[:10], many=True).data
+            })
+        except TutorWallet.DoesNotExist:
+            return Response(
+                {"detail": "Wallet not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = InvoiceSerializer
+    queryset = Invoice.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = DefaultPagination
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == "User":
+            return Invoice.objects.filter(payment__student=user)
+        elif user.role == "Tutor":
+            return Invoice.objects.filter(payment__tutor=user)
+        return Invoice.objects.none()
+
+    @action(detail=False, methods=["get"])
+    def my_invoices(self, request):
+        """Get current user's invoices"""
+        invoices = self.get_queryset()
+        page = self.paginate_queryset(invoices)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(invoices, many=True)
+        return Response(serializer.data)

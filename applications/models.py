@@ -46,6 +46,7 @@ class Enrollment(models.Model):
         on_delete=models.CASCADE, 
         related_name="enrollments"
     )
+    payment_verified = models.BooleanField(default=True)
     enrolled_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -102,3 +103,81 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.student.email}: {self.tuition.title} ({self.rating};{self.comment})"
+
+
+class Payment(models.Model):
+    PAYMENT_STATUS_PENDING = "PENDING"
+    PAYMENT_STATUS_COMPLETED = "COMPLETED"
+    PAYMENT_STATUS_FAILED = "FAILED"
+    PAYMENT_STATUS_REFUNDED = "REFUNDED"
+    
+    PAYMENT_STATUS_CHOICES = [
+        (PAYMENT_STATUS_PENDING, "Pending"),
+        (PAYMENT_STATUS_COMPLETED, "Completed"),
+        (PAYMENT_STATUS_FAILED, "Failed"),
+        (PAYMENT_STATUS_REFUNDED, "Refunded"),
+    ]
+    
+    enrollment = models.OneToOneField(
+        Enrollment,
+        on_delete=models.CASCADE,
+        related_name="payment"
+    )
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="student_payments"
+    )
+    tutor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="tutor_payments"
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(
+        max_length=20,
+        choices=PAYMENT_STATUS_CHOICES,
+        default=PAYMENT_STATUS_PENDING
+    )
+    transaction_id = models.CharField(max_length=255, unique=True)
+    payment_gateway = models.CharField(max_length=50, blank=True, null=True)
+    payment_date = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Payment: {self.student.email} -> {self.tutor.email} ({self.status})"
+
+
+class TutorWallet(models.Model):
+    tutor = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="wallet"
+    )
+    total_earned = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    available_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    pending_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total_withdrawn = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Wallet: {self.tutor.email} - Available: {self.available_balance}"
+
+
+class Invoice(models.Model):
+    payment = models.OneToOneField(
+        Payment,
+        on_delete=models.CASCADE,
+        related_name="invoice"
+    )
+    invoice_number = models.CharField(max_length=50, unique=True)
+    issued_date = models.DateTimeField(auto_now_add=True)
+    pdf_url = models.URLField(blank=True, null=True)
+    
+    def __str__(self):
+        return f"Invoice: {self.invoice_number}"

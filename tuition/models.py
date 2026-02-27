@@ -13,6 +13,8 @@ class Tuition(models.Model):
     subject = models.CharField(max_length=100)
     class_level = models.CharField(max_length=100)
     availability = models.BooleanField(default=True)
+    is_paid = models.BooleanField(default=False)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
