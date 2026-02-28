@@ -52,8 +52,8 @@ def initiate_payment(request):
     post_body['total_amount'] = amount      
     post_body['currency'] = "BDT"
     post_body['tran_id'] = f"txn_{enrollment_id}"
-    post_body['success_url'] = "http://localhost:5173/payment/success/"
-    post_body['fail_url'] = "http://localhost:5173/payment/fail/"
+    post_body['success_url'] = "http://localhost:5173/dashboard/payment/success/"
+    post_body['fail_url'] = "http://localhost:5173/dashboard/payment/fail/"
     post_body['cancel_url'] = "http://localhost:5173/dashboard/my-enrollments"
     post_body['emi_option'] = 0
     post_body['cus_name'] = f"{user.first_name} {user.last_name}"
