@@ -46,7 +46,7 @@ class Enrollment(models.Model):
         on_delete=models.CASCADE, 
         related_name="enrollments"
     )
-    payment_verified = models.BooleanField(default=True)
+    payment_verified = models.BooleanField(default=False)
     enrolled_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

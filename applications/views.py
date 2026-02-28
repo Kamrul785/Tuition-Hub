@@ -69,9 +69,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         serializer = EnrollmentSerializer(enrollment, context={"request": request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-class EnrollmentViewSet(viewsets.ReadOnlyModelViewSet):
+class EnrollmentViewSet(viewsets.ModelViewSet):
     serializer_class = EnrollmentSerializer
     queryset = Enrollment.objects.all()
+    http_method_names = ['get', 'patch', 'head', 'options']  # Only allow GET and PATCH
+
+    def get_permissions(self):
+        if self.action in ['partial_update', 'update']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
@@ -80,6 +86,38 @@ class EnrollmentViewSet(viewsets.ReadOnlyModelViewSet):
         elif user.role == "Tutor":
             return Enrollment.objects.filter(tuition__tutor=user)
         return Enrollment.objects.none()
+    
+    def partial_update(self, request, *args, **kwargs):
+        enrollment = self.get_object()
+        print("Enrollment to update:", enrollment.student)
+        print("Request data:", request.user)
+        # Only the student can update their enrollment
+        if enrollment.student != request.user:
+            return Response(
+                {"detail": "You can only update your own enrollment."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Only allow updating payment_verified field
+        if 'payment_verified' not in request.data:
+            return Response(
+                {"detail": "Only payment_verified field can be updated."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if there are other fields being updated
+        extra_fields = set(request.data.keys()) - {'payment_verified'}
+        if extra_fields:
+            return Response(
+                {"detail": f"Cannot update fields: {', '.join(extra_fields)}. Only payment_verified is allowed."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        enrollment.payment_verified = request.data.get('payment_verified')
+        enrollment.save()
+        
+        serializer = self.get_serializer(enrollment)
+        return Response(serializer.data)
     
     @action(detail=True, methods=["get"])
     def progress(self, request, pk=None):

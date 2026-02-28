@@ -49,7 +49,7 @@ def initiate_payment(request):
     settings = { 'store_id': 'tuiti699b02e4e33f5', 'store_pass': 'tuiti699b02e4e33f5@ssl', 'issandbox': True }
     sslcz = SSLCOMMERZ(settings)
     post_body = {}
-    post_body['total_amount'] = amount  
+    post_body['total_amount'] = amount      
     post_body['currency'] = "BDT"
     post_body['tran_id'] = f"txn_{enrollment_id}"
     post_body['success_url'] = "http://localhost:5173/payment/success/"
@@ -62,7 +62,7 @@ def initiate_payment(request):
     post_body['cus_add1'] = user.address
     post_body['cus_city'] = "Dhaka"
     post_body['cus_country'] = "Bangladesh"
-    post_body['shipping_method'] = "Courier"
+    post_body['shipping_method'] = "NO"
     post_body['multi_card_name'] = ""
     post_body['num_of_item'] = 1
     post_body['product_name'] = "Educational Services"
