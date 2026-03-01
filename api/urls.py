@@ -1,6 +1,6 @@
 from django.urls import path,include
 from rest_framework_nested import routers
-from tuition.views import TuitionViewSet, initiate_payment
+from tuition.views import TuitionViewSet, initiate_payment, payment_success, payment_fail, payment_cancel
 from applications.views import ApplicationViewSet, EnrollmentViewSet, TopicViewSet, AssignmentViewSet, ReviewViewSet, PaymentViewSet, TutorWalletViewSet, InvoiceViewSet
 
 router = routers.DefaultRouter()
@@ -23,4 +23,7 @@ urlpatterns = [
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
     path('payment/initiate/', initiate_payment, name='initiate-payment'),
+    path('payment/success/', payment_success, name='payment-success'),
+    path('payment/fail/', payment_fail, name='payment-fail'),
+    path('payment/cancel/', payment_cancel, name='payment-cancel'),
 ]
