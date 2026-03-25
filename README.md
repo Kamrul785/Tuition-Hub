@@ -49,8 +49,8 @@ requirements.txt
 1. Clone and enter project
 
 ```bash
-git clone <repository-url>
-cd Tuition_media
+git clone https://github.com/Kamrul785/Tuition-Hub
+cd Tuition-Hub
 ```
 
 2. Create and activate virtual environment
